@@ -1,0 +1,29 @@
+# Binaries
+/go-api
+apps/go-api/go-api
+*.exe
+
+# Go
+apps/go-api/go.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Evidence artifacts
+evidence/*.txt
+
+# Logs
+*.log
+
+# Temp
+tmp/
+
+# Docker volumes (managed by compose)
+prometheus-data/
+grafana-data/

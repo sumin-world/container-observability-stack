@@ -1,0 +1,52 @@
+groups:
+  - name: go-api-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: >
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total[5m]))
+          > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP 5xx error rate on go-api"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+          runbook_url: "docs/runbooks/memory-growth-investigation.md"
+
+      - alert: HighP99Latency
+        expr: >
+          histogram_quantile(0.99,
+            sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
+          ) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 latency exceeds 500ms on go-api"
+          description: "P99 latency is {{ $value | humanizeDuration }}."
+          runbook_url: "docs/runbooks/memory-growth-investigation.md"
+
+      - alert: MemoryLeakSuspected
+        expr: heap_alloc_bytes > 100 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Heap allocation exceeds 100MB — possible memory leak"
+          description: "Heap is at {{ $value | humanize1024 }}B."
+          runbook_url: "docs/runbooks/memory-growth-investigation.md"
+
+      - alert: ContainerMemoryHigh
+        expr: >
+          container_memory_usage_bytes{name="go-api"}
+          /
+          268435456
+          > 0.85
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "go-api container using >85% of 256MB memory limit"
+          description: "Container memory usage is {{ $value | humanizePercentage }}."
