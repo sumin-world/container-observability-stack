@@ -10,6 +10,10 @@ scrape_configs:
     static_configs:
       - targets: ["go-api:8080"]
 
+  - job_name: "exchange-rate-service"
+    static_configs:
+      - targets: ["exchange-rate-service:8081"]
+
   - job_name: "node-exporter"
     static_configs:
       - targets: ["node-exporter:9100"]

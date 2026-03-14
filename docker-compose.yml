@@ -21,6 +21,26 @@ services:
     networks:
       - observability
 
+  exchange-rate-service:
+    build:
+      context: ./apps/exchange-rate-service
+      dockerfile: Dockerfile
+    container_name: exchange-rate-service
+    ports:
+      - "8082:8081"
+    environment:
+      - PORT=8081
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - observability
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.96.0
     container_name: otel-collector

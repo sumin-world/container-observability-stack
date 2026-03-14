@@ -3,9 +3,9 @@ groups:
     rules:
       - alert: HighErrorRate
         expr: >
-          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          sum(rate(http_requests_total{job="go-api",status=~"5.."}[5m]))
           /
-          sum(rate(http_requests_total[5m]))
+          sum(rate(http_requests_total{job="go-api"}[5m]))
           > 0.1
         for: 2m
         labels:
@@ -18,7 +18,7 @@ groups:
       - alert: HighP99Latency
         expr: >
           histogram_quantile(0.99,
-            sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
+            sum by (le) (rate(http_request_duration_seconds_bucket{job="go-api"}[5m]))
           ) > 0.5
         for: 3m
         labels:
@@ -50,3 +50,42 @@ groups:
         annotations:
           summary: "go-api container using >85% of 256MB memory limit"
           description: "Container memory usage is {{ $value | humanizePercentage }}."
+
+  - name: exchange-rate-alerts
+    rules:
+      - alert: ExchangeRateAnomalyDetected
+        expr: exchange_rate_change_percent > 30
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Exchange rate anomaly detected ({{ $labels.currency }})"
+          description: "Rate of change is {{ $value }}% — exceeds 30% threshold."
+          runbook_url: "docs/case-studies/multi-source-data-aggregation.md"
+
+      - alert: SourceDivergenceHigh
+        expr: exchange_rate_source_divergence_percent > 10
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Data source divergence too high ({{ $labels.currency }})"
+          description: "Sources differ by {{ $value }}% — possible unit mismatch."
+
+      - alert: CircuitBreakerOpen
+        expr: exchange_rate_circuit_breaker_state == 1
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuit breaker OPEN for {{ $labels.currency }}"
+          description: "Too many anomalies detected. Exchange rate service is rejecting requests."
+
+      - alert: RaceConditionDetected
+        expr: rate(exchange_race_condition_detected_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Race conditions detected in unsafe exchange path"
+          description: "TOCTOU bugs are occurring at {{ $value }} per second."
