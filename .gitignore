@@ -1,10 +1,13 @@
 # Binaries
 /go-api
 apps/go-api/go-api
+/exchange-rate-service
+apps/exchange-rate-service/exchange-rate-service
 *.exe
 
 # Go
 apps/go-api/go.sum
+apps/exchange-rate-service/go.sum
 
 # IDE
 .idea/
