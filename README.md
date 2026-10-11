@@ -139,11 +139,12 @@ compare behaviour side by side in Grafana.
 ### Memory Leak (go-api)
 
 ```bash
-# Generate a memory leak over 50 requests
-./scripts/simulate-leak.sh 50 2
+# Generate a memory leak over 110 requests (heap crosses 100 MB at ~98)
+./scripts/simulate-leak.sh 110 1
 
-# Observe in Grafana → Go API Observability dashboard
-# Resolve with:
+# Wait ~5 min after heap > 100 MB: MemoryLeakSuspected goes pending → firing
+# Observe at http://localhost:9090/alerts or Grafana → Go API Observability
+# Resolve with (only after the alert has fired):
 curl -X POST http://localhost:8080/reset
 ```
 
@@ -171,6 +172,10 @@ curl -X POST http://localhost:8082/reset
 | MemoryLeakSuspected   | Heap > 100 MB for 5 min            | critical |
 | ContainerMemoryHigh   | Container > 85 % of 256 MB for 2 m | critical |
 
+> `ContainerMemoryHigh` relies on cAdvisor's per-container `name` label. On
+> Docker Desktop (macOS) cAdvisor only exposes cgroup roots, so this rule has
+> no data and cannot fire there. It needs a Linux host.
+
 ### exchange-rate-service Alerts
 
 | Alert                       | Condition                                  | Severity |
@@ -181,6 +186,28 @@ curl -X POST http://localhost:8082/reset
 | RaceConditionDetected       | Race conditions detected in unsafe path    | warning  |
 
 ---
+
+## Verified Run (2026-10-11)
+
+I re-ran the memory leak scenario end to end and checked every claim in
+[INC-001](docs/incidents/INC-001-memory-leak.md) against Prometheus. The re-test
+found six gaps between the design and the actual behavior:
+
+| # | Finding | Evidence |
+|---|---------|----------|
+| 1 | The documented trigger (50 requests) could not reach the 100 MB threshold | Heap 53.0 MB at request 50; threshold crossed at request 98 in two runs |
+| 2 | One cause raised two alerts | Safety-cap 503s fired `HighErrorRate` alongside `MemoryLeakSuspected` |
+| 3 | The 5 min alert wait is longer than time-to-OOM at 1 MB/s | Alert at ~6 min 40 s vs. 256 MiB limit at ~4 min 15 s without the cap |
+| 4 | `ContainerMemoryHigh` has no data on macOS | `container_memory_usage_bytes{name="go-api"}` returns 0 series |
+| 5 | `HighErrorRate` lags recovery | Stayed firing ~3 min after the 503s stopped (5 min `rate()` window) |
+| 6 | Heap recovery ≠ process memory recovery | After `/reset`: heap 2.8 MB, Go `Sys` still 218.1 MB |
+
+Run 3 confirmed the full lifecycle: pending 07:32:51 → firing 07:37:51 →
+resolved 07:38:22 (13 s after reset).
+
+Fixed so far: script default and status-code output, INC-001 timeline,
+obsolete `version` key in `docker-compose.yml`. Alert rule changes are tracked
+in the INC-001 prevention checklist.
 
 ## Project Structure
 
