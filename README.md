@@ -195,7 +195,7 @@ found six gaps between the design and the actual behavior:
 
 | # | Finding | Evidence |
 |---|---------|----------|
-| 1 | The documented trigger (50 requests) could not reach the 100 MB threshold | Heap 53.0 MB at request 50; threshold crossed at request 98 in two runs |
+| 1 | The documented trigger (50 requests) could not reach the 100 MB threshold | Heap 53.0 MB at request 50; threshold crossed at request 98 in all three runs |
 | 2 | One cause raised two alerts | Safety-cap 503s fired `HighErrorRate` alongside `MemoryLeakSuspected` |
 | 3 | The 5 min alert wait is longer than time-to-OOM at 1 MB/s | Alert at ~6 min 40 s vs. 256 MiB limit at ~4 min 15 s without the cap |
 | 4 | `ContainerMemoryHigh` has no data on macOS | `container_memory_usage_bytes{name="go-api"}` returns 0 series |

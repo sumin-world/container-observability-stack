@@ -19,7 +19,7 @@
 |--------------------------------------|-----------------------------------------|
 | Heap at start                        | ~1 MB (not 8 MB as previously written)  |
 | Heap after 50 requests               | 53.0 MB — below the 100 MB threshold    |
-| Request that crosses 100 MB          | 98th (100.4 MB), reproduced in two runs |
+| Request that crosses 100 MB          | 98th in all three runs (100.4 / 100.7 / 100.5 MB) |
 | Safety cap                           | 200 chunks → HTTP 503 on further `/leak` calls |
 | Container memory at cap              | 213.6 MiB / 256 MiB (83 %)              |
 | pprof `inuse_space` top              | `main.leakHandler` — 128.37 MB, 99.61 % |
